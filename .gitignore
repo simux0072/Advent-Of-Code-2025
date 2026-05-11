@@ -1,5 +1,4 @@
-./.zig-cache
-./.git
-./build.zig.zon
-./zig-out
-./.gitignore
+.zig-cache
+.git
+build.zig.zon
+zig-out
