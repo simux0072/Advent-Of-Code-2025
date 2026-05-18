@@ -15,6 +15,7 @@ pub fn build(b: *std.Build) void {
     all_step.dependOn(test_step);
     all_step.dependOn(run_step);
 
+    run_step.dependOn(test_step);
     var src_dir = std.Io.Dir.openDir(std.Io.Dir.cwd(), io, "src/", .{ .iterate = true }) catch |err| {
         std.debug.panic("failed to open src directory: {}", .{err});
     };
@@ -47,15 +48,6 @@ pub fn build(b: *std.Build) void {
         // Tests
         // -----------------------------
 
-        const test_banner = b.addSystemCommand(&.{
-            "printf",
-            b.fmt("\n========== Tests: src/{s} ==========\n", .{file_name}),
-        });
-
-        if (previous_test) |prev| {
-            test_banner.step.dependOn(prev);
-        }
-
         const unit_tests = b.addTest(.{
             .root_module = b.createModule(.{
                 .root_source_file = b.path(src_path),
@@ -65,7 +57,6 @@ pub fn build(b: *std.Build) void {
         });
 
         const run_tests = b.addRunArtifact(unit_tests);
-        run_tests.step.dependOn(&test_banner.step);
 
         test_step.dependOn(&run_tests.step);
         previous_test = &run_tests.step;
@@ -93,9 +84,12 @@ pub fn build(b: *std.Build) void {
 
         if (previous_run) |prev| {
             run_banner.step.dependOn(prev);
+        } else {
+            run_banner.step.dependOn(test_step);
         }
 
         const run_exe = b.addRunArtifact(exe);
+        run_exe.has_side_effects = true;
         run_exe.step.dependOn(&run_banner.step);
 
         // If your AoC programs expect argv[1] to be the input path, uncomment:
