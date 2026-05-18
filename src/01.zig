@@ -103,3 +103,47 @@ pub fn main(init: std.process.Init) !void {
     const numZerosTotal = try secondPart(content, 100);
     std.debug.print("Number of Zeros in Total: {d}\n", .{numZerosTotal});
 }
+
+test "Reduce Number Unset" {
+    const base: usize = 100;
+    var rotNum: usize = 138;
+
+    reduceNumber(&rotNum, base, null);
+
+    try std.testing.expectEqual(38, rotNum);
+
+    rotNum = 246;
+    reduceNumber(&rotNum, base, null);
+    try std.testing.expectEqual(46, rotNum);
+}
+
+test "Reduce Number Set" {
+    const base: usize = 100;
+    var rotNum: usize = 138;
+    var numZerosTotal: usize = 0;
+
+    reduceNumber(&rotNum, base, &numZerosTotal);
+    try std.testing.expectEqual(38, rotNum);
+    try std.testing.expectEqual(1, numZerosTotal);
+
+    rotNum = 246;
+    numZerosTotal = 5;
+
+    reduceNumber(&rotNum, base, &numZerosTotal);
+    try std.testing.expectEqual(46, rotNum);
+    try std.testing.expectEqual(7, numZerosTotal);
+}
+
+test "First Part" {
+    const input = @embedFile("input/test/01.txt");
+
+    const numZerosFromExact = try firstPart(input, 100);
+    try std.testing.expectEqual(3, numZerosFromExact);
+}
+
+test "Second Part" {
+    const input = @embedFile("input/test/01.txt");
+
+    const numZerosTotal = try secondPart(input, 100);
+    try std.testing.expectEqual(6, numZerosTotal);
+}
