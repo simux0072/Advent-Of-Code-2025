@@ -10,7 +10,7 @@ fn reduceNumber(rotNum: *usize, base: usize, numZerosTotal: *usize) void {
 
 pub fn main(init: std.process.Init) !void {
     const fileName = "01.txt";
-    const fileLocation = "./input";
+    const fileLocation = "./input/test";
 
     var rotNum: usize = 50;
     const base = 100;

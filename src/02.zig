@@ -76,7 +76,7 @@ fn findRepetitions(searchRange: SearchRange, checkRepetition: ?usize, seenNumber
     return sum;
 }
 
-fn firstPart(fileContent: []u8, alloc: std.mem.Allocator) !usize {
+fn firstPart(fileContent: []const u8, alloc: std.mem.Allocator) !usize {
     var it = std.mem.tokenizeAny(u8, fileContent, ",\r\n");
     var sum: usize = 0;
     while (it.next()) |ranges| {
@@ -89,7 +89,7 @@ fn firstPart(fileContent: []u8, alloc: std.mem.Allocator) !usize {
     return sum;
 }
 
-fn secondPart(fileContent: []u8, alloc: std.mem.Allocator) !usize {
+fn secondPart(fileContent: []const u8, alloc: std.mem.Allocator) !usize {
     var it = std.mem.tokenizeAny(u8, fileContent, ",\r\n");
     var sum: usize = 0;
     while (it.next()) |ranges| {
@@ -105,7 +105,7 @@ fn secondPart(fileContent: []u8, alloc: std.mem.Allocator) !usize {
 pub fn main(init: std.process.Init) !void {
     const io = init.io;
 
-    const inputFile = "./input/02.txt";
+    const inputFile = "src/input/02.txt";
 
     var buffer: [1024]u8 = undefined;
     var gpa = std.heap.FixedBufferAllocator.init(&buffer);
@@ -126,4 +126,80 @@ pub fn main(init: std.process.Init) !void {
     std.debug.print("--- Part 2 ---\n", .{});
     sum = try secondPart(content, arenaAllocator);
     std.debug.print("Sum: {d}\n", .{sum});
+}
+
+test "SearchRange Init" {
+    var searchRange = try SearchRange.init("11-22");
+    try std.testing.expectEqualStrings("11", searchRange.lowerStr);
+    try std.testing.expectEqualStrings("22", searchRange.upperStr);
+    try std.testing.expectEqual(@as(usize, 11), searchRange.lower);
+    try std.testing.expectEqual(@as(usize, 22), searchRange.upper);
+
+    searchRange = try SearchRange.init("222220-222224");
+    try std.testing.expectEqualStrings("222220", searchRange.lowerStr);
+    try std.testing.expectEqualStrings("222224", searchRange.upperStr);
+    try std.testing.expectEqual(@as(usize, 222220), searchRange.lower);
+    try std.testing.expectEqual(@as(usize, 222224), searchRange.upper);
+}
+
+test "Repeat NTimes" {
+    try std.testing.expectEqual(111111, repeatNTimes(11, 3));
+    try std.testing.expectEqual(123123, repeatNTimes(123, 2));
+    try std.testing.expectEqual(312312312312, repeatNTimes(312, 4));
+}
+
+test "Find Repetitions Set" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    var range = try SearchRange.init("83-112");
+    var checkRepetition: usize = 3;
+
+    var seenNumbers = std.AutoHashMap(usize, void).init(arena.allocator());
+    defer seenNumbers.deinit();
+
+    try std.testing.expectEqual(@as(usize, 111), findRepetitions(range, checkRepetition, &seenNumbers));
+
+    range = try SearchRange.init("222220-222224");
+    checkRepetition = 6;
+    try std.testing.expectEqual(@as(usize, 222222), findRepetitions(range, checkRepetition, &seenNumbers));
+
+    range = try SearchRange.init("243224-243248");
+    checkRepetition = 3;
+    try std.testing.expectEqual(@as(usize, 0), findRepetitions(range, checkRepetition, &seenNumbers));
+}
+
+test "Find Repetitions Unset" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    var range = try SearchRange.init("83-112");
+    var seenNumbers = std.AutoHashMap(usize, void).init(arena.allocator());
+    defer seenNumbers.deinit();
+
+    try std.testing.expectEqual(@as(usize, 298), findRepetitions(range, null, &seenNumbers));
+
+    range = try SearchRange.init("998-1012");
+
+    try std.testing.expectEqual(@as(usize, 2009), findRepetitions(range, null, &seenNumbers));
+}
+
+test "First Part" {
+    const input = @embedFile("input/test/02.txt");
+
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const result = try firstPart(input, arena.allocator());
+    try std.testing.expectEqual(@as(usize, 1227775554), result);
+}
+
+test "Second Part" {
+    const input = @embedFile("input/test/02.txt");
+
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const result = try secondPart(input, arena.allocator());
+    try std.testing.expectEqual(@as(usize, 4174379265), result);
 }
