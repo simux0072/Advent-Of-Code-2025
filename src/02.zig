@@ -107,18 +107,13 @@ pub fn main(init: std.process.Init) !void {
 
     const inputFile = "src/input/02.txt";
 
-    var buffer: [1024]u8 = undefined;
-    var gpa = std.heap.FixedBufferAllocator.init(&buffer);
-    const allocator = gpa.allocator();
-    defer gpa.reset();
-
-    const content = try std.Io.Dir.cwd().readFileAlloc(io, inputFile, allocator, .unlimited);
-    defer allocator.free(content);
-
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
 
     const arenaAllocator = arena.allocator();
+
+    const content = try std.Io.Dir.cwd().readFileAlloc(io, inputFile, arenaAllocator, .unlimited);
+    defer arenaAllocator.free(content);
 
     std.debug.print("--- Part 1 ---\n", .{});
     var sum = try firstPart(content, arenaAllocator);

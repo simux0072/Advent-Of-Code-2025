@@ -1,43 +1,60 @@
 const std = @import("std");
 
-fn reduceNumber(rotNum: *usize, base: usize, numZerosTotal: *usize) void {
+fn reduceNumber(rotNum: *usize, base: usize, numZerosTotal: ?*usize) void {
     if (rotNum.* >= base) {
         const reduction = rotNum.* / base;
         rotNum.* -= base * reduction;
-        numZerosTotal.* += reduction;
+        if (numZerosTotal != null) numZerosTotal.?.* += reduction;
     }
 }
 
-pub fn main(init: std.process.Init) !void {
-    const fileName = "01.txt";
-    const fileLocation = "src/input";
+fn firstPart(content: []const u8, base: usize) !usize {
+    var it = std.mem.tokenizeAny(u8, content, "\n\r");
+    var rotNum: usize = 50;
+    var numZerosFromExact: usize = 0;
+
+    while (it.next()) |line| {
+        var rot = try std.fmt.parseInt(usize, line[1..], 10);
+        reduceNumber(&rot, base, null);
+        switch (line[0]) {
+            'L' => {
+                switch (rotNum > rot) {
+                    true => rotNum -= rot,
+                    false => {
+                        rotNum += base - rot;
+                        reduceNumber(&rotNum, base, null);
+                    },
+                }
+            },
+            'R' => {
+                switch (rotNum + rot >= base) {
+                    true => {
+                        rotNum += rot;
+                        reduceNumber(&rotNum, base, null);
+                    },
+                    else => rotNum += rot,
+                }
+            },
+            else => return error.IncorrectFileFormatting,
+        }
+        if (rotNum == 0) {
+            numZerosFromExact += 1;
+        } else {
+            continue;
+        }
+    }
+    return numZerosFromExact;
+}
+
+fn secondPart(content: []const u8, base: usize) !usize {
+    var it = std.mem.tokenizeAny(u8, content, "\n\r");
 
     var rotNum: usize = 50;
-    const base = 100;
-
-    const io = init.io;
-    const cwd = std.Io.Dir.cwd();
-
-    const input_dir = try cwd.openDir(io, fileLocation, .{});
-    defer input_dir.close(io);
-
-    const file = try input_dir.openFile(io, fileName, .{});
-    defer file.close(io);
-
-    var lineContent: [10]u8 = undefined;
-
-    var fileReader = file.reader(io, &lineContent);
-    const reader = &fileReader.interface;
-
-    var numZerosFromExact: usize = 0;
     var numZerosTotal: usize = 0;
 
-    while (reader.takeDelimiterExclusive('\n')) |value| {
-        reader.toss(1);
-
-        var rot = try std.fmt.parseInt(usize, value[1..], 10);
-
-        switch (value[0]) {
+    while (it.next()) |line| {
+        var rot = try std.fmt.parseInt(usize, line[1..], 10);
+        switch (line[0]) {
             'L' => {
                 reduceNumber(&rot, base, &numZerosTotal);
                 switch (rotNum > rot) {
@@ -63,13 +80,26 @@ pub fn main(init: std.process.Init) !void {
             },
             else => return error.IncorrectFileFormatting,
         }
-        if (rotNum == 0) {
-            numZerosFromExact += 1;
-        } else {
-            continue;
-        }
-    } else |_| {
-        std.debug.print("Finished task!\n--- PART 1 ---\nNumber of Zeros: {d}\n", .{numZerosFromExact});
-        std.debug.print("--- PART 2 ---\nNumber of Zeros: {d}", .{numZerosTotal});
     }
+    return numZerosTotal;
+}
+
+pub fn main(init: std.process.Init) !void {
+    const inputFile = "src/input/01.txt";
+
+    const io = init.io;
+
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
+    const content = try std.Io.Dir.cwd().readFileAlloc(io, inputFile, allocator, .unlimited);
+
+    std.debug.print("--- Part 1 ---\n", .{});
+    const numZerosFromExact = try firstPart(content, 100);
+    std.debug.print("Number of Exact Zeros: {d}\n", .{numZerosFromExact});
+    std.debug.print("--- Part 2 ---\n", .{});
+    const numZerosTotal = try secondPart(content, 100);
+    std.debug.print("Number of Zeros in Total: {d}\n", .{numZerosTotal});
 }
