@@ -157,11 +157,11 @@ test "Find Repetitions Set" {
 
     range = try SearchRange.init("222220-222224");
     checkRepetition = 6;
-    try std.testing.expectEqual(@as(usize, 222222), findRepetitions(range, checkRepetition, &seenNumbers));
+    try std.testing.expectEqual(222222, findRepetitions(range, checkRepetition, &seenNumbers));
 
     range = try SearchRange.init("243224-243248");
     checkRepetition = 3;
-    try std.testing.expectEqual(@as(usize, 0), findRepetitions(range, checkRepetition, &seenNumbers));
+    try std.testing.expectEqual(0, findRepetitions(range, checkRepetition, &seenNumbers));
 }
 
 test "Find Repetitions Unset" {
@@ -172,11 +172,11 @@ test "Find Repetitions Unset" {
     var seenNumbers = std.AutoHashMap(usize, void).init(arena.allocator());
     defer seenNumbers.deinit();
 
-    try std.testing.expectEqual(@as(usize, 298), findRepetitions(range, null, &seenNumbers));
+    try std.testing.expectEqual(298, findRepetitions(range, null, &seenNumbers));
 
     range = try SearchRange.init("998-1012");
 
-    try std.testing.expectEqual(@as(usize, 2009), findRepetitions(range, null, &seenNumbers));
+    try std.testing.expectEqual(2009, findRepetitions(range, null, &seenNumbers));
 }
 
 test "First Part" {
@@ -186,7 +186,7 @@ test "First Part" {
     defer arena.deinit();
 
     const result = try firstPart(input, arena.allocator());
-    try std.testing.expectEqual(@as(usize, 1227775554), result);
+    try std.testing.expectEqual(1227775554, result);
 }
 
 test "Second Part" {
@@ -196,5 +196,5 @@ test "Second Part" {
     defer arena.deinit();
 
     const result = try secondPart(input, arena.allocator());
-    try std.testing.expectEqual(@as(usize, 4174379265), result);
+    try std.testing.expectEqual(4174379265, result);
 }
