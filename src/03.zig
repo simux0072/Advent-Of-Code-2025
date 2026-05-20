@@ -27,7 +27,7 @@ fn getHighest(batteryCluster: *BatteryCluster) !usize {
             continue;
         }
         for (batteryCluster.highestBatteries[0 .. batteryCluster.highestBatteries.len - 1], 0..) |voltage, index| {
-            if (voltage > batteryCluster.highestBatteries[index + 1]) continue;
+            if (voltage >= batteryCluster.highestBatteries[index + 1]) continue;
             @memmove(batteryCluster.highestBatteries[index .. batteryCluster.highestBatteries.len - 1], batteryCluster.highestBatteries[index + 1 ..]);
             batteryCluster.highestBatteries[batteryCluster.highestBatteries.len - 1] = batteryVoltage;
             break;
@@ -44,7 +44,6 @@ fn findHighestSum(content: []const u8, allocator: std.mem.Allocator, highestBatt
         var pack = try BatteryCluster.init(batteryCluster, allocator, highestBatteriesSize);
         defer pack.deinit();
         const newSum = try getHighest(&pack);
-        std.debug.print("For {s} => {d}\n", .{ batteryCluster, newSum });
         sum += newSum;
     }
     return sum;
