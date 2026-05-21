@@ -15,10 +15,10 @@ const positions = enum {
 const Grid = struct {
     height: usize = undefined,
     width: usize = undefined,
-    data: []const u8,
+    data: []u8,
     available: usize = 0,
 
-    pub fn init(data: []const u8) Grid {
+    pub fn init(data: []u8) Grid {
         var self = Grid{
             .data = data,
         };
@@ -54,6 +54,7 @@ const Grid = struct {
                 },
                 else => continue,
             }
+
             if (currentSurround < surroundNumber) available += 1;
         }
         return available;
@@ -92,108 +93,137 @@ pub fn main(init: std.process.Init) !void {
 }
 
 test "Grid.getDimensions" {
-    const testInputOne = "1111\n2222\n3333\n4444\n5555";
-    var testGrid = Grid{ .data = testInputOne };
+    var testInput = "1111\n2222\n3333\n4444\n5555".*;
+    var testGrid = Grid{ .data = &testInput };
     testGrid.getDimensions();
     try std.testing.expectEqual(4, testGrid.width);
     try std.testing.expectEqual(5, testGrid.height);
 
-    const testInputTwo = "..@..\n@@.@@\n@@@@.\n@.@.@";
-    testGrid = Grid{ .data = testInputTwo };
+    var testTwoInput = "..@..\n@@.@@\n@@@@.\n@.@.@".*;
+    testGrid = Grid{ .data = &testTwoInput };
     testGrid.getDimensions();
     try std.testing.expectEqual(5, testGrid.width);
     try std.testing.expectEqual(4, testGrid.height);
 }
 
 test "Grid Init" {
-    const testInputOne = "1111111\n2222222\n3333333\n4444444";
-    const testGridOne = Grid.init(testInputOne);
-    try std.testing.expectEqualSlices(u8, testInputOne, testGridOne.data);
+    var testInput = "1111111\n2222222\n3333333\n4444444".*;
+    const testGridOne = Grid.init(&testInput);
+    try std.testing.expectEqualSlices(u8, &testInput, testGridOne.data);
     try std.testing.expectEqual(7, testGridOne.width);
     try std.testing.expectEqual(4, testGridOne.height);
 
-    const testInputTwo = ".@.\n@@@\n@.@\n...";
-    const testGridTwo = Grid.init(testInputTwo);
-    try std.testing.expectEqualSlices(u8, testInputTwo, testGridTwo.data);
+    var testTwoInput = ".@.\n@@@\n@.@\n...".*;
+    const testGridTwo = Grid.init(&testTwoInput);
+    try std.testing.expectEqualSlices(u8, &testTwoInput, testGridTwo.data);
     try std.testing.expectEqual(3, testGridTwo.width);
     try std.testing.expectEqual(4, testGridTwo.height);
 }
 
 test "Get Neighbours" {
     // Test: Center
-    const centerData = "@@@\n@@@\n@@@";
+    var centerData = "@@@\n@@@\n@@@".*;
     var coordinates = [2]usize{ 1, 1 };
-    var grid = Grid{ .height = 3, .width = 3, .data = centerData };
+    var grid = Grid{ .height = 3, .width = 3, .data = &centerData };
     var surround = grid.getNeighbours(coordinates);
     try std.testing.expectEqual(8, surround);
 
     // Test: Center (not fully surrounded)
-    const centerDataNFS = "@@@\n@@.\n@@@";
+    var centerDataNFS = "@@@\n@@.\n@@@".*;
     coordinates = [2]usize{ 1, 1 };
-    grid.data = centerDataNFS;
+    grid.data = &centerDataNFS;
     surround = grid.getNeighbours(coordinates);
     try std.testing.expectEqual(7, surround);
 
     // Test: Top middle
-    const topMiddleData = "@@@\n@..\n@@@";
+    var topMiddleData = "@@@\n@..\n@@@".*;
     coordinates = [2]usize{ 1, 0 };
-    grid.data = topMiddleData;
+    grid.data = &topMiddleData;
     surround = grid.getNeighbours(coordinates);
     try std.testing.expectEqual(3, surround);
 
     // Test: Top Right
-    const topRightData = "@.@\n.@@\n@@@";
+    var topRightData = "@.@\n.@@\n@@@".*;
     coordinates = [2]usize{ 2, 0 };
-    grid.data = topRightData;
+    grid.data = &topRightData;
     surround = grid.getNeighbours(coordinates);
     try std.testing.expectEqual(2, surround);
 
     // Test: Top Left
-    const topLeftData = "@.@\n@..\n@@@";
+    var topLeftData = "@.@\n@..\n@@@".*;
     coordinates = [2]usize{ 0, 0 };
-    grid.data = topLeftData;
+    grid.data = &topLeftData;
     surround = grid.getNeighbours(coordinates);
     try std.testing.expectEqual(1, surround);
 
     // Test: Middle Left
-    const middleLeftData = "@@@\n@@.\n@@@";
+    var middleLeftData = "@@@\n@@.\n@@@".*;
     coordinates = [2]usize{ 0, 1 };
-    grid.data = middleLeftData;
+    grid.data = &middleLeftData;
     surround = grid.getNeighbours(coordinates);
     try std.testing.expectEqual(5, surround);
 
     // Test: Middle Right
-    const middleRightData = ".@.\n@@@\n@@@";
+    var middleRightData = ".@.\n@@@\n@@@".*;
     coordinates = [2]usize{ 2, 1 };
-    grid.data = middleRightData;
+    grid.data = &middleRightData;
     surround = grid.getNeighbours(coordinates);
     try std.testing.expectEqual(4, surround);
 
     // Test: Bottom Left
-    const bottomLeftData = "@.@\n@@.\n@@.";
+    var bottomLeftData = "@.@\n@@.\n@@.".*;
     coordinates = [2]usize{ 0, 2 };
-    grid.data = bottomLeftData;
+    grid.data = &bottomLeftData;
     surround = grid.getNeighbours(coordinates);
     try std.testing.expectEqual(3, surround);
 
     // Test: Bottom Middle
-    const bottomMiddleData = "...\n...\n.@.";
+    var bottomMiddleData = "...\n...\n.@.".*;
     coordinates = [2]usize{ 1, 2 };
-    grid.data = bottomMiddleData;
+    grid.data = &bottomMiddleData;
     surround = grid.getNeighbours(coordinates);
     try std.testing.expectEqual(0, surround);
 
     // Test: Bottom Right
-    const bottomRightData = "@@@\n@..\n@.@";
+    var bottomRightData = "@@@\n@..\n@.@".*;
     coordinates = [2]usize{ 2, 2 };
-    grid.data = bottomRightData;
+    grid.data = &bottomRightData;
     surround = grid.getNeighbours(coordinates);
     try std.testing.expectEqual(0, surround);
 }
 
+test "Find Available" {
+    var testOneData = "@@@.@\n@..@.\n@@.@@\n@@@..\n@.@.@\n@@@@@".*;
+    var grid = Grid.init(&testOneData);
+    var available = grid.findAvailable(4);
+    try std.testing.expectEqual(10, available);
+
+    var testTwoData = "@.@@..@@.@\n.@@.@@.@@.\n@@..@@..@@\n..@@..@@..\n@.@.@.@.@.\n.@.@.@.@.@\n@@@@....@@\n....@@@@..\n@@.@@.@@.@\n.@@.@@.@@.".*;
+    grid = Grid.init(&testTwoData);
+    available = grid.findAvailable(4);
+    try std.testing.expectEqual(29, available);
+
+    var testThreeData = "@.@.@\n.@.@.\n@@@.@\n..@@.\n@..@@".*;
+    grid = Grid.init(&testThreeData);
+    available = grid.findAvailable(4);
+    try std.testing.expectEqual(8, available);
+
+    var testFourData = "@@@...\n@@@...\n@@@...\n...@@.\n...@@.\n.....@".*;
+    grid = Grid.init(&testFourData);
+    available = grid.findAvailable(4);
+    try std.testing.expectEqual(6, available);
+}
+
 test "First Part" {
     const content = @embedFile("input/test/04.txt");
-    var grid = Grid.init(content);
+
+    var arenaAllocator = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arenaAllocator.deinit();
+    const allocator = arenaAllocator.allocator();
+
+    const mutableContent = try allocator.dupe(u8, content);
+
+    var grid = Grid.init(mutableContent);
     const available = grid.findAvailable(4);
 
     try std.testing.expectEqual(13, available);
