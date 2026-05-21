@@ -36,10 +36,10 @@ const Grid = struct {
         self.height = (self.data.len + 1) / (self.width + 1);
     }
 
-    pub fn findAvailable(self: *Grid, surroundNumber: usize) usize {
+    pub fn findAvailable(self: *Grid, surroundNumber: usize, removeFreed: bool) usize {
         var available: usize = 0;
         var index: usize = 0;
-        for (self.data) |byte| {
+        for (self.data, 0..) |byte, trueIndex| {
             var currentSurround: usize = 0;
             switch (byte) {
                 '@' => {
@@ -47,6 +47,10 @@ const Grid = struct {
                     const coordinates: [2]usize = [2]usize{ @as(usize, @intCast(@rem(index, self.width))), index / self.width };
                     currentSurround = self.getNeighbours(coordinates);
                     index += 1;
+                    if (currentSurround >= surroundNumber) continue;
+                    available += 1;
+                    if (removeFreed == false) continue;
+                    self.data[trueIndex] = '.';
                 },
                 '.' => {
                     index += 1;
@@ -54,8 +58,6 @@ const Grid = struct {
                 },
                 else => continue,
             }
-
-            if (currentSurround < surroundNumber) available += 1;
         }
         return available;
     }
@@ -70,6 +72,16 @@ const Grid = struct {
             if (self.data[(self.width + 1) * @as(usize, @intCast(yCoordenate)) + @as(usize, @intCast(xCoordinate))] == '@') currentSurround += 1;
         }
         return currentSurround;
+    }
+
+    pub fn findAllPossibleRemovals(self: *Grid, surroundNumber: usize) usize {
+        var available = self.findAvailable(surroundNumber, true);
+        var allRemoved = available;
+        while (available != 0) {
+            available = self.findAvailable(surroundNumber, true);
+            allRemoved += available;
+        }
+        return allRemoved;
     }
 };
 
@@ -87,9 +99,11 @@ pub fn main(init: std.process.Init) !void {
     var grid = Grid.init(content);
 
     std.debug.print("--- First Part ---\n", .{});
-    const available = grid.findAvailable(4);
+    const available = grid.findAvailable(4, false);
     std.debug.print("Available: {d}\n", .{available});
     std.debug.print("--- Second Part ---\n", .{});
+    const allRemoved = grid.findAllPossibleRemovals(4);
+    std.debug.print("Number of Rolls removed: {d}\n", .{allRemoved});
 }
 
 test "Grid.getDimensions" {
@@ -195,36 +209,70 @@ test "Get Neighbours" {
 test "Find Available" {
     var testOneData = "@@@.@\n@..@.\n@@.@@\n@@@..\n@.@.@\n@@@@@".*;
     var grid = Grid.init(&testOneData);
-    var available = grid.findAvailable(4);
+    var available = grid.findAvailable(4, false);
     try std.testing.expectEqual(10, available);
 
     var testTwoData = "@.@@..@@.@\n.@@.@@.@@.\n@@..@@..@@\n..@@..@@..\n@.@.@.@.@.\n.@.@.@.@.@\n@@@@....@@\n....@@@@..\n@@.@@.@@.@\n.@@.@@.@@.".*;
     grid = Grid.init(&testTwoData);
-    available = grid.findAvailable(4);
+    available = grid.findAvailable(4, false);
     try std.testing.expectEqual(29, available);
 
     var testThreeData = "@.@.@\n.@.@.\n@@@.@\n..@@.\n@..@@".*;
     grid = Grid.init(&testThreeData);
-    available = grid.findAvailable(4);
+    available = grid.findAvailable(4, false);
     try std.testing.expectEqual(8, available);
 
     var testFourData = "@@@...\n@@@...\n@@@...\n...@@.\n...@@.\n.....@".*;
     grid = Grid.init(&testFourData);
-    available = grid.findAvailable(4);
+    available = grid.findAvailable(4, false);
     try std.testing.expectEqual(6, available);
+}
+
+test "Find All Possible Removals" {
+    var testOneData = "@@@.@\n@..@.\n@@.@@\n@@@..\n@.@.@\n@@@@@".*;
+    var grid = Grid.init(&testOneData);
+    var possibleRemovals = grid.findAllPossibleRemovals(4);
+    try std.testing.expectEqual(21, possibleRemovals);
+
+    // X.XX..XX.X
+    // .XX.XX.XX.
+    // XX..XX..XX
+    // ..XX..XX..
+    // X.X.X.X.X.
+    // .X.X.X.X.X
+    // XXXX....XX
+    // ....XXXX..
+    // XX.XX.XX.X
+    // .XX.XX.XX.
+    var testTwoData = "@.@@..@@.@\n.@@.@@.@@.\n@@..@@..@@\n..@@..@@..\n@.@.@.@.@.\n.@.@.@.@.@\n@@@@....@@\n....@@@@..\n@@.@@.@@.@\n.@@.@@.@@.".*;
+    grid = Grid.init(&testTwoData);
+    possibleRemovals = grid.findAllPossibleRemovals(4);
+    try std.testing.expectEqual(55, possibleRemovals);
 }
 
 test "First Part" {
     const content = @embedFile("input/test/04.txt");
 
-    var arenaAllocator = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arenaAllocator.deinit();
-    const allocator = arenaAllocator.allocator();
-
+    const allocator = std.testing.allocator;
     const mutableContent = try allocator.dupe(u8, content);
+    defer allocator.free(mutableContent);
 
     var grid = Grid.init(mutableContent);
-    const available = grid.findAvailable(4);
+    const available = grid.findAvailable(4, false);
 
     try std.testing.expectEqual(13, available);
+}
+
+test "Second Part" {
+    const content = @embedFile("input/test/04.txt");
+
+    var allocator = std.testing.allocator;
+
+    const mutableContent = try allocator.dupe(u8, content);
+    defer allocator.free(mutableContent);
+
+    var grid = Grid.init(mutableContent);
+    const allRemoved = grid.findAllPossibleRemovals(4);
+
+    try std.testing.expectEqual(43, allRemoved);
 }
