@@ -234,16 +234,6 @@ test "Find All Possible Removals" {
     var possibleRemovals = grid.findAllPossibleRemovals(4);
     try std.testing.expectEqual(21, possibleRemovals);
 
-    // X.XX..XX.X
-    // .XX.XX.XX.
-    // XX..XX..XX
-    // ..XX..XX..
-    // X.X.X.X.X.
-    // .X.X.X.X.X
-    // XXXX....XX
-    // ....XXXX..
-    // XX.XX.XX.X
-    // .XX.XX.XX.
     var testTwoData = "@.@@..@@.@\n.@@.@@.@@.\n@@..@@..@@\n..@@..@@..\n@.@.@.@.@.\n.@.@.@.@.@\n@@@@....@@\n....@@@@..\n@@.@@.@@.@\n.@@.@@.@@.".*;
     grid = Grid.init(&testTwoData);
     possibleRemovals = grid.findAllPossibleRemovals(4);

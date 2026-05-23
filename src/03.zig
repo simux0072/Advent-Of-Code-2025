@@ -28,11 +28,15 @@ fn getHighest(batteryCluster: *BatteryCluster) !usize {
         }
         for (batteryCluster.highestBatteries[0 .. batteryCluster.highestBatteries.len - 1], 0..) |voltage, index| {
             if (voltage >= batteryCluster.highestBatteries[index + 1]) continue;
-            @memmove(batteryCluster.highestBatteries[index .. batteryCluster.highestBatteries.len - 1], batteryCluster.highestBatteries[index + 1 ..]);
+            @memmove(
+                batteryCluster.highestBatteries[index .. batteryCluster.highestBatteries.len - 1],
+                batteryCluster.highestBatteries[index + 1 ..],
+            );
             batteryCluster.highestBatteries[batteryCluster.highestBatteries.len - 1] = batteryVoltage;
             break;
         }
-        if (batteryCluster.highestBatteries[batteryCluster.highestBatteries.len - 1] < batteryVoltage) batteryCluster.highestBatteries[batteryCluster.highestBatteries.len - 1] = batteryVoltage;
+        if (batteryCluster.highestBatteries[batteryCluster.highestBatteries.len - 1] < batteryVoltage)
+            batteryCluster.highestBatteries[batteryCluster.highestBatteries.len - 1] = batteryVoltage;
     }
     return try std.fmt.parseInt(usize, batteryCluster.highestBatteries, 10);
 }
