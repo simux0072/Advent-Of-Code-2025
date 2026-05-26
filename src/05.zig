@@ -167,6 +167,69 @@ test "Create Ranges" {
     try std.testing.expectEqual(secondTestFreshIDs, ranges.freshIDs);
 }
 
+test "Check IDs" {
+    const allocator = std.testing.allocator;
+
+    const firstTestInput = "12\n35\n47\n58\n80\n110\n195\n215\n305\n390\n405\n450\n490";
+    var ranges = Ranges{ .allocator = allocator, .ranges = .empty, .freshIDs = 0 };
+    try ranges.ranges.appendSlice(ranges.allocator, &[_][2]usize{
+        .{ 10, 60 },
+        .{ 45, 130 },
+        .{ 100, 220 },
+        .{ 190, 320 },
+        .{ 300, 410 },
+        .{ 380, 500 },
+    });
+    try ranges.checkIDs(firstTestInput);
+    try std.testing.expectEqual(13, ranges.freshIDs);
+
+    const secondTestInput = "5\n42\n88\n99\n205\n270\n310\n348\n501\n575\n620\n648\n803\n900\n945\n1102\n1200\n1298";
+    ranges.deinit();
+    ranges = .{ .allocator = allocator, .ranges = .empty, .freshIDs = 0 };
+    try ranges.ranges.appendSlice(ranges.allocator, &[_][2]usize{
+        .{ 0, 99 },
+        .{ 200, 349 },
+        .{ 500, 649 },
+        .{ 800, 949 },
+        .{ 1100, 1299 },
+    });
+    try ranges.checkIDs(secondTestInput);
+    try std.testing.expectEqual(18, ranges.freshIDs);
+
+    const thirdTestInput = "1\n25\n49\n101\n200\n250\n299\n451\n600\n695\n851\n999\n1201\n1350\n1499\n1701\n2000\n5000";
+    ranges.deinit();
+    ranges = .{ .allocator = allocator, .freshIDs = 0, .ranges = .empty };
+    try ranges.ranges.appendSlice(ranges.allocator, &[_][2]usize{
+        .{ 50, 100 },
+        .{ 300, 450 },
+        .{ 700, 850 },
+        .{ 1000, 1200 },
+        .{ 1500, 1700 },
+    });
+    try ranges.checkIDs(thirdTestInput);
+    try std.testing.expectEqual(0, ranges.freshIDs);
+
+    const fourthTestInput = "3\n20\n55\n86\n100\n160\n250\n261\n399\n400\n490\n551\n660\n700\n785\n801\n900\n1000\n1100\n1151\n1300\n1399\n1450\n1451\n1800";
+    ranges.deinit();
+    ranges = .{ .allocator = allocator, .freshIDs = 0, .ranges = .empty };
+    try ranges.ranges.appendSlice(ranges.allocator, &[_][2]usize{
+        .{ 20, 85 },
+        .{ 150, 260 },
+        .{ 400, 550 },
+        .{ 700, 800 },
+        .{ 1000, 1150 },
+        .{ 1300, 1450 },
+    });
+    defer ranges.deinit();
+    try ranges.checkIDs(fourthTestInput);
+    try std.testing.expectEqual(13, ranges.freshIDs);
+}
+
+test "compactRange" {
+    const allocator = std.testing.allocator;
+    var range = Ranges{ .allocator = allocator, .ranges = .empty, .freshIDs = 0 };
+}
+
 test "Part 1" {
     const allocator = std.testing.allocator;
     const content = @embedFile("input/test/05.txt");
