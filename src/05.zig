@@ -1,5 +1,13 @@
 const std = @import("std");
 
+const RangePossibilities = union(enum) {
+    ShiftedRight: usize,
+    ShiftedLeft: usize,
+    Bigger: usize,
+    Smaller: void,
+    NewRange: void,
+};
+
 const Ranges = struct {
     allocator: std.mem.Allocator,
     ranges: std.ArrayList([2]usize),
@@ -17,9 +25,15 @@ const Ranges = struct {
         while (lineIter.next()) |newLines| {
             var numberIter = std.mem.tokenizeAny(u8, newLines, "-");
             const tempNumberRange = [2]usize{ try std.fmt.parseInt(usize, numberIter.next().?, 10), try std.fmt.parseInt(usize, numberIter.next().?, 10) };
-            try self.checkRanges(tempNumberRange);
+            switch (checkRanges(self.ranges.items, tempNumberRange)) {
+                .Smaller => continue,
+                .Bigger => |index| self.ranges.items[index] = tempNumberRange,
+                .ShiftedLeft => |index| self.ranges.items[index][0] = tempNumberRange[0],
+                .ShiftedRight => |index| self.ranges.items[index][1] = tempNumberRange[1],
+                .NewRange => try self.ranges.append(self.allocator, tempNumberRange),
+            }
         }
-
+        try self.compactRange();
         return self.checkIDs(content[separatorIndex.? + 2 ..]);
     }
 
@@ -36,32 +50,37 @@ const Ranges = struct {
         }
     }
 
-    fn checkRanges(self: *Ranges, range: [2]usize) !void {
-        for (self.ranges.items, 0..) |possibleRange, rangeIndex| {
-            std.debug.print("Checking: [{d}, {d}] - [{d}, {d}]\n", .{ possibleRange[0], possibleRange[1], range[0], range[1] });
-            if (range[0] > possibleRange[1] + 1 or range[1] < possibleRange[0] - 1) continue;
-            if (range[0] >= possibleRange[0] - 1 and range[1] <= possibleRange[1] + 1) return;
-            if (range[0] < possibleRange[0] - 1 and range[1] > possibleRange[1] + 1) {
-                self.ranges.items[rangeIndex] = range;
-                return;
-            }
-            if (range[0] < possibleRange[0] - 1) {
-                self.ranges.items[rangeIndex][0] = range[0];
-                return;
-            }
-            if (range[1] > possibleRange[1] + 1) {
-                self.ranges.items[rangeIndex][1] = range[1];
-                return;
+    fn compactRange(self: *Ranges) !void {
+        if (self.ranges.items.len == 0) return error.ArrayHasZeroElements;
+        for (0..self.ranges.items.len - 1) |firstRangeIndex| {
+            switch (checkRanges(self.ranges.items[firstRangeIndex + 1 ..], self.ranges.items[firstRangeIndex])) {
+                .Smaller => {
+                    _ = self.ranges.swapRemove(firstRangeIndex);
+                    return try self.compactRange();
+                },
+                .Bigger => |index| {
+                    _ = self.ranges.swapRemove(firstRangeIndex + 1 + index);
+                    return try self.compactRange();
+                },
+                .ShiftedLeft => |index| {
+                    self.ranges.items[firstRangeIndex + 1 + index][0] = self.ranges.items[firstRangeIndex][0];
+                    _ = self.ranges.swapRemove(firstRangeIndex);
+                    return try self.compactRange();
+                },
+                .ShiftedRight => |index| {
+                    self.ranges.items[firstRangeIndex + 1 + index][1] = self.ranges.items[firstRangeIndex][1];
+                    _ = self.ranges.swapRemove(firstRangeIndex);
+                    return try self.compactRange();
+                },
+                .NewRange => continue,
             }
         }
-        try self.ranges.append(self.allocator, range);
         return;
     }
 
     fn findAllFreshIDs(self: *Ranges) usize {
         var allFreshIDs: usize = 0;
         for (self.ranges.items) |range| {
-            std.debug.print("Testing: {d}:{d}\n", .{ range[0], range[1] });
             allFreshIDs += range[1] - range[0] + 1;
         }
         return allFreshIDs;
@@ -71,6 +90,17 @@ const Ranges = struct {
         self.ranges.deinit(self.allocator);
     }
 };
+
+fn checkRanges(rangesToCheck: [][2]usize, range: [2]usize) RangePossibilities {
+    for (rangesToCheck, 0..) |possibleRange, rangeIndex| {
+        if (range[0] > possibleRange[1] + 1 or range[1] < possibleRange[0] - 1) continue;
+        if (range[0] >= possibleRange[0] - 1 and range[1] <= possibleRange[1] + 1) return RangePossibilities.Smaller;
+        if (range[0] < possibleRange[0] - 1 and range[1] > possibleRange[1] + 1) return RangePossibilities{ .Bigger = rangeIndex };
+        if (range[0] < possibleRange[0] - 1) return RangePossibilities{ .ShiftedLeft = rangeIndex };
+        if (range[1] > possibleRange[1] + 1) return RangePossibilities{ .ShiftedRight = rangeIndex };
+    }
+    return RangePossibilities.NewRange;
+}
 
 pub fn main(init: std.process.Init) !void {
     const io = init.io;
@@ -84,6 +114,10 @@ pub fn main(init: std.process.Init) !void {
     std.debug.print("FreshIDs: {d}\n", .{range.freshIDs});
     defer range.deinit();
     std.debug.print("--- Part 2 ---\n", .{});
+    range.deinit();
+    range = try Ranges.init(content, allocator);
+    const allFreshIDs = range.findAllFreshIDs();
+    std.debug.print("Number of possible freshIDs: {d}\n", .{allFreshIDs});
 }
 
 test "Ranges Init" {
