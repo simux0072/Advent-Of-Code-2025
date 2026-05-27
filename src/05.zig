@@ -94,10 +94,10 @@ const Ranges = struct {
 fn checkRanges(rangesToCheck: [][2]usize, range: [2]usize) RangePossibilities {
     for (rangesToCheck, 0..) |possibleRange, rangeIndex| {
         if (range[0] > possibleRange[1] + 1 or range[1] < possibleRange[0] - 1) continue;
-        if (range[0] >= possibleRange[0] - 1 and range[1] <= possibleRange[1] + 1) return RangePossibilities.Smaller;
-        if (range[0] < possibleRange[0] - 1 and range[1] > possibleRange[1] + 1) return RangePossibilities{ .Bigger = rangeIndex };
-        if (range[0] < possibleRange[0] - 1) return RangePossibilities{ .ShiftedLeft = rangeIndex };
-        if (range[1] > possibleRange[1] + 1) return RangePossibilities{ .ShiftedRight = rangeIndex };
+        if (range[0] >= possibleRange[0] and range[1] <= possibleRange[1]) return RangePossibilities.Smaller;
+        if (range[0] < possibleRange[0] and range[1] > possibleRange[1]) return RangePossibilities{ .Bigger = rangeIndex };
+        if (range[0] < possibleRange[0]) return RangePossibilities{ .ShiftedLeft = rangeIndex };
+        if (range[1] > possibleRange[1]) return RangePossibilities{ .ShiftedRight = rangeIndex };
     }
     return RangePossibilities.NewRange;
 }
@@ -117,7 +117,7 @@ pub fn main(init: std.process.Init) !void {
     range.deinit();
     range = try Ranges.init(content, allocator);
     const allFreshIDs = range.findAllFreshIDs();
-    std.debug.print("Number of possible freshIDs: {d}\n", .{allFreshIDs});
+    std.debug.print("Number of all possible freshIDs: {d}\n", .{allFreshIDs});
 }
 
 test "Ranges Init" {
@@ -225,9 +225,203 @@ test "Check IDs" {
     try std.testing.expectEqual(13, ranges.freshIDs);
 }
 
-test "compactRange" {
+test "Compact Range" {
     const allocator = std.testing.allocator;
+
     var range = Ranges{ .allocator = allocator, .ranges = .empty, .freshIDs = 0 };
+    const firstTestExpectedRanges = [_][2]usize{
+        .{ 650, 750 },
+        .{ 200, 280 },
+        .{ 1050, 1150 },
+        .{ 5, 40 },
+        .{ 850, 950 },
+        .{ 350, 430 },
+        .{ 1500, 1600 },
+        .{ 80, 120 },
+        .{ 1250, 1380 },
+        .{ 500, 580 },
+    };
+    try range.ranges.appendSlice(
+        range.allocator,
+        &[_][2]usize{
+            .{ 650, 750 },
+            .{ 200, 280 },
+            .{ 1050, 1150 },
+            .{ 5, 40 },
+            .{ 850, 950 },
+            .{ 350, 430 },
+            .{ 1500, 1600 },
+            .{ 80, 120 },
+            .{ 1250, 1380 },
+            .{ 500, 580 },
+        },
+    );
+    defer range.deinit();
+    try range.compactRange();
+    try std.testing.expectEqualSlices([2]usize, &firstTestExpectedRanges, range.ranges.items);
+
+    const secondTestExpectedRanges = [_][2]usize{ .{ 700, 1200 }, .{ 300, 640 }, .{ 10, 250 } };
+    range.deinit();
+    range = Ranges{ .allocator = allocator, .freshIDs = 0, .ranges = .empty };
+    try range.ranges.appendSlice(range.allocator, &[_][2]usize{
+        .{ 800, 950 },
+        .{ 300, 420 },
+        .{ 60, 160 },
+        .{ 1050, 1200 },
+        .{ 10, 80 },
+        .{ 500, 640 },
+        .{ 140, 250 },
+        .{ 920, 1080 },
+        .{ 380, 530 },
+        .{ 700, 830 },
+    });
+
+    try range.compactRange();
+    try std.testing.expectEqualSlices([2]usize, &secondTestExpectedRanges, range.ranges.items);
+
+    const thirdTestExpectedRanges = [_][2]usize{ .{ 200, 350 }, .{ 1400, 1700 }, .{ 10, 100 }, .{ 1100, 1250 }, .{ 500, 950 } };
+    range.deinit();
+    range = Ranges{ .allocator = allocator, .ranges = .empty, .freshIDs = 0 };
+    try range.ranges.appendSlice(range.allocator, &[_][2]usize{
+        .{ 800, 950 },
+        .{ 1550, 1700 },
+        .{ 50, 100 },
+        .{ 1100, 1250 },
+        .{ 500, 650 },
+        .{ 10, 50 },
+        .{ 1400, 1550 },
+        .{ 200, 350 },
+        .{ 650, 800 },
+    });
+    try range.compactRange();
+    try std.testing.expectEqualSlices([2]usize, &thirdTestExpectedRanges, range.ranges.items);
+
+    const fourthTestExpectedRanges = [_][2]usize{ .{ 20, 80 }, .{ 400, 750 }, .{ 1700, 1800 }, .{ 150, 350 }, .{ 900, 1000 }, .{ 1100, 1500 } };
+    range.deinit();
+    range = Ranges{ .allocator = allocator, .ranges = .empty, .freshIDs = 0 };
+    try range.ranges.appendSlice(range.allocator, &[_][2]usize{
+        .{ 1230, 1400 },
+        .{ 550, 750 },
+        .{ 1700, 1800 },
+        .{ 250, 350 },
+        .{ 900, 1000 },
+        .{ 1100, 1250 },
+        .{ 20, 80 },
+        .{ 1400, 1500 },
+        .{ 150, 250 },
+        .{ 400, 600 },
+    });
+    try range.compactRange();
+    try std.testing.expectEqualSlices([2]usize, &fourthTestExpectedRanges, range.ranges.items);
+}
+
+test "Find All Fresh IDs" {
+    const allocator = std.testing.allocator;
+    var ranges = Ranges{ .allocator = allocator, .ranges = .empty, .freshIDs = 0 };
+    defer ranges.deinit();
+    try ranges.ranges.appendSlice(ranges.allocator, &[_][2]usize{
+        .{ 300, 450 },
+        .{ 20, 45 },
+        .{ 780, 850 },
+        .{ 5, 5 },
+        .{ 1200, 1350 },
+        .{ 90, 140 },
+        .{ 600, 610 },
+        .{ 1500, 1800 },
+        .{ 400, 405 },
+        .{ 50, 75 },
+    });
+    try std.testing.expectEqual(795, ranges.findAllFreshIDs());
+
+    ranges.deinit();
+    ranges = Ranges{ .allocator = allocator, .ranges = .empty, .freshIDs = 0 };
+    try ranges.ranges.appendSlice(ranges.allocator, &[_][2]usize{
+        .{ 1000, 1000 },
+        .{ 75, 200 },
+        .{ 5000, 5099 },
+        .{ 10, 12 },
+        .{ 800, 900 },
+        .{ 420, 500 },
+        .{ 2000, 2200 },
+        .{ 150, 155 },
+        .{ 3300, 3400 },
+        .{ 0, 9 },
+    });
+    try std.testing.expectEqual(730, ranges.findAllFreshIDs());
+
+    ranges.deinit();
+    ranges = Ranges{ .allocator = allocator, .ranges = .empty, .freshIDs = 0 };
+    try ranges.ranges.appendSlice(ranges.allocator, &[_][2]usize{
+        .{ 540, 600 },
+        .{ 1800, 1900 },
+        .{ 30, 30 },
+        .{ 700, 710 },
+        .{ 100, 299 },
+        .{ 4000, 4500 },
+        .{ 8, 20 },
+        .{ 2500, 2550 },
+        .{ 1000, 1024 },
+        .{ 350, 351 },
+    });
+    try std.testing.expectEqual(966, ranges.findAllFreshIDs());
+}
+
+test "Check Ranges" {
+    var testOneRanges = [_][2]usize{ .{ 50, 150 }, .{ 500, 600 }, .{ 900, 1000 }, .{ 1300, 1500 }, .{ 1800, 1950 }, .{ 2200, 2400 } };
+    const testOneNewRange = [2]usize{ 80, 120 };
+    const testOneOutput = checkRanges(&testOneRanges, testOneNewRange);
+    try std.testing.expectEqual(std.meta.activeTag(testOneOutput), RangePossibilities.Smaller);
+
+    var testTwoRanges = [_][2]usize{
+        .{ 100, 200 },
+        .{ 600, 750 },
+        .{ 1000, 1100 },
+        .{ 1400, 1600 },
+        .{ 2000, 2200 },
+        .{ 2500, 2600 },
+    };
+    const testTwoNewRange = [2]usize{ 1300, 1700 };
+    const testTwoOutput = checkRanges(&testTwoRanges, testTwoNewRange);
+    try std.testing.expectEqual(std.meta.activeTag(testTwoOutput), RangePossibilities.Bigger);
+    try std.testing.expectEqual(3, testTwoOutput.Bigger);
+
+    var testThreeRanges = [_][2]usize{
+        .{ 50, 200 },
+        .{ 400, 600 },
+        .{ 900, 1050 },
+        .{ 1300, 1500 },
+        .{ 1800, 2000 },
+        .{ 2300, 2600 },
+    };
+    const testThreeNewRange = [2]usize{ 2500, 2900 };
+    const testThreeOutput = checkRanges(&testThreeRanges, testThreeNewRange);
+    try std.testing.expectEqual(std.meta.activeTag(testThreeOutput), RangePossibilities.ShiftedRight);
+    try std.testing.expectEqual(5, testThreeOutput.ShiftedRight);
+
+    var testFourRanges = [_][2]usize{
+        .{ 400, 700 },
+        .{ 1000, 1200 },
+        .{ 1500, 1700 },
+        .{ 2000, 2200 },
+        .{ 2500, 2700 },
+        .{ 3000, 3200 },
+    };
+    const testFourNewRange = [2]usize{ 200, 550 };
+    const testFourOutput = checkRanges(&testFourRanges, testFourNewRange);
+    try std.testing.expectEqual(std.meta.activeTag(testFourOutput), RangePossibilities.ShiftedLeft);
+    try std.testing.expectEqual(0, testFourOutput.ShiftedLeft);
+
+    var testFiveRanges = [_][2]usize{
+        .{ 2000, 2200 },
+        .{ 500, 600 },
+        .{ 2700, 2900 },
+        .{ 100, 200 },
+        .{ 1400, 1600 },
+        .{ 900, 1000 },
+    };
+    const testFiveNewRange = [2]usize{ 1200, 1350 };
+    const testFiveOutput = checkRanges(&testFiveRanges, testFiveNewRange);
+    try std.testing.expectEqual(std.meta.activeTag(testFiveOutput), RangePossibilities.NewRange);
 }
 
 test "Part 1" {
