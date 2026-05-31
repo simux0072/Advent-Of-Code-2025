@@ -79,6 +79,20 @@ fn readHomeWork(content: []const u8, allocator: std.mem.Allocator) !HomeWork {
     return homeWork;
 }
 
+fn readHomeWorkDown(content: []const u8, allocator: std.mem.Allocator) !void {
+    var homeWork = HomeWork{ .sum = 0, .numProblems = 0, .numRows = 0, .problems = .empty, .symbols = .empty, .allocator = allocator };
+    const count = std.mem.count(u8, content, '\n') + 1;
+    const buffer = try allocator.alloc([]const u8, count);
+    defer allocator.free(buffer);
+    var iter = std.mem.tokenizeScalar(u8, content, '\n');
+    var index: usize = 0;
+    while (iter.next()) |line| : (index += 1) {
+        buffer[index] = line;
+    }
+    var number = std.ArrayList(u8).empty;
+    for (0..buffer[0].len) |charIndex| {}
+}
+
 pub fn main(init: std.process.Init) !void {
     const io = init.io;
     const inputFile = "src/input/06.txt";
