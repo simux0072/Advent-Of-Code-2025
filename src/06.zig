@@ -79,9 +79,9 @@ fn readHomeWork(content: []const u8, allocator: std.mem.Allocator) !HomeWork {
     return homeWork;
 }
 
-fn readHomeWorkDown(content: []const u8, allocator: std.mem.Allocator) !void {
+fn readHomeWorkDown(content: []const u8, allocator: std.mem.Allocator) !HomeWork {
     var homeWork = HomeWork{ .sum = 0, .numProblems = 0, .numRows = 0, .problems = .empty, .symbols = .empty, .allocator = allocator };
-    const count = std.mem.count(u8, content, '\n') + 1;
+    const count = std.mem.count(u8, content, "\n");
     const buffer = try allocator.alloc([]const u8, count);
     defer allocator.free(buffer);
     var iter = std.mem.tokenizeScalar(u8, content, '\n');
@@ -90,7 +90,44 @@ fn readHomeWorkDown(content: []const u8, allocator: std.mem.Allocator) !void {
         buffer[index] = line;
     }
     var number = std.ArrayList(u8).empty;
-    for (0..buffer[0].len) |charIndex| {}
+    var symbol: MathProblemType = undefined;
+    var sum: usize = 0;
+    for (0..buffer[0].len) |columnIndex| {
+        for (0..buffer.len) |rowIndex| {
+            switch (buffer[rowIndex][columnIndex]) {
+                ' ' => continue,
+                '*' => symbol = MathProblemType.Multiply,
+                '+' => symbol = MathProblemType.Sum,
+                else => |c| {
+                    try number.append(allocator, c);
+                },
+            }
+        }
+        if (std.mem.eql(u8, number.items, "")) {
+            number.clearAndFree(allocator);
+            number = .empty;
+            symbol = undefined;
+            homeWork.sum += sum;
+            sum = 0;
+            continue;
+        }
+
+        const num = try std.fmt.parseInt(usize, number.items, 10);
+        switch (symbol) {
+            MathProblemType.Sum => sum += num,
+            MathProblemType.Multiply => {
+                if (sum == 0) {
+                    sum = num;
+                } else {
+                    sum *= num;
+                }
+            },
+        }
+        number.clearAndFree(allocator);
+        number = .empty;
+    }
+    homeWork.sum += sum;
+    return homeWork;
 }
 
 pub fn main(init: std.process.Init) !void {
@@ -105,6 +142,10 @@ pub fn main(init: std.process.Init) !void {
     defer homeWork.deinit();
     homeWork.completeHomeWork();
     std.debug.print("Sum: {d}\n", .{homeWork.sum});
+    std.debug.print("--- Part 2 ---\n", .{});
+    var homeWorkDown = try readHomeWorkDown(content, init.gpa);
+    defer homeWorkDown.deinit();
+    std.debug.print("Sum: {d}\n", .{homeWorkDown.sum});
 }
 
 test "Read HomeWork" {
@@ -136,4 +177,12 @@ test "Part 1" {
     homeWork.completeHomeWork();
 
     try std.testing.expectEqual(4277556, homeWork.sum);
+}
+
+test "Part 2" {
+    const content = @embedFile("input/test/06.txt");
+
+    var homeWork = try readHomeWorkDown(content, std.testing.allocator);
+    defer homeWork.deinit();
+    try std.testing.expectEqual(3263827, homeWork.sum);
 }
